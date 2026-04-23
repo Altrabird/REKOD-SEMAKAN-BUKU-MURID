@@ -1,18 +1,40 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, UserCircle, ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { User, Camera, Image as ImageIcon, Loader2, CheckCircle2, UserCircle } from 'lucide-react';
 import { Student, SubmissionStatus } from '../types';
 import { REASONS } from '../constants';
 
 interface StudentCardProps {
   student: Student;
-  onStatusChange: (id: string, status: SubmissionStatus, reason?: string) => void;
+  onStatusChange: (id: string, status: SubmissionStatus, reason?: string, evidenceUrl?: string) => void;
+  onUploadEvidence: (file: File, studentId: string) => Promise<string>;
   key?: string | number;
 }
 
-export default function StudentCard({ student, onStatusChange }: StudentCardProps) {
+export default function StudentCard({ student, onStatusChange, onUploadEvidence }: StudentCardProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmitted = student.status === 'submitted';
   const isNotSubmitted = student.status === 'not_submitted';
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await onUploadEvidence(file, student.id);
+      onStatusChange(student.id, student.status, student.reason, url);
+    } catch (err) {
+      alert("Gagal memuat naik evidens.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -28,12 +50,37 @@ export default function StudentCard({ student, onStatusChange }: StudentCardProp
             : 'bg-white border-slate-200 hover:border-blue-400'
       }`}
     >
+      <input 
+        type="file" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={handleFileChange}
+        accept="image/*"
+        capture="environment"
+      />
+
       <div className="flex flex-col items-center text-center space-y-2 w-full">
-        {/* Gender Icon */}
-        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-1 shadow-inner ${
-          student.gender === 'L' ? 'bg-blue-600 text-white shadow-blue-400' : 'bg-pink-500 text-white shadow-pink-300'
+        {/* Profile / Evidence Icon */}
+        <div 
+          onClick={handleUploadClick}
+          className={`group relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-1 shadow-inner cursor-pointer overflow-hidden ${
+          student.gender === 'L' ? 'bg-blue-600 text-white shadow-blue-400' : 
+          student.gender === 'P' ? 'bg-pink-500 text-white shadow-pink-300' :
+          'bg-slate-700 text-white shadow-slate-500'
         }`}>
-          {student.gender === 'L' ? <span className="text-2xl sm:text-3xl">👦</span> : <span className="text-2xl sm:text-3xl">👧</span>}
+          {student.evidenceUrl ? (
+            <img src={student.evidenceUrl} alt="Evidence" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <>
+              {student.gender === 'L' ? <span className="text-2xl sm:text-3xl">👦</span> : 
+               student.gender === 'P' ? <span className="text-2xl sm:text-3xl">👧</span> : 
+               <UserCircle className="w-8 h-8" />}
+            </>
+          )}
+          
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            {isUploading ? <Loader2 className="animate-spin text-white" /> : <Camera className="text-white" size={20} />}
+          </div>
         </div>
 
         {/* Name */}
@@ -53,8 +100,15 @@ export default function StudentCard({ student, onStatusChange }: StudentCardProp
           )}
 
           {isSubmitted && (
-            <div className="flex items-center justify-center bg-emerald-600 text-white px-2 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md">
-              SELESAI
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-full flex items-center justify-center bg-emerald-600 text-white px-2 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md">
+                SELESAI
+              </div>
+              {student.evidenceUrl && (
+                <span className="text-[8px] font-black text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 size={10} /> EVIDENS ADA
+                </span>
+              )}
             </div>
           )}
 

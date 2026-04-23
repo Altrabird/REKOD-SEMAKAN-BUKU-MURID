@@ -4,10 +4,12 @@ export type SubmissionStatus = 'pending' | 'submitted' | 'not_submitted';
 export interface Student {
   id: string;
   name: string;
-  gender: Gender;
+  gender?: Gender;
   status: SubmissionStatus;
   reason?: string;
   classId?: string;
+  sesi?: string;
+  evidenceUrl?: string;
 }
 
 export interface ClassData {

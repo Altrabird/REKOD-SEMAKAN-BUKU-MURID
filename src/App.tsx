@@ -12,86 +12,114 @@ import {
   LayoutDashboard,
   Download,
   AlertTriangle,
-  Save
+  Save,
+  FileText
 } from 'lucide-react';
 import StudentCard from './components/StudentCard';
 import Summary from './components/Summary';
-import { Student, SubmissionStatus } from './types';
-import { CLASSES, MOCK_STUDENTS } from './constants';
+import { Student, SubmissionStatus, ClassData } from './types';
+import { REASONS } from './constants';
 import { fetchStudentsFromSheet } from './services/googleSheetsService';
-import SettingsModal from './components/SettingsModal';
+import RecordsModal from './components/RecordsModal';
+import { generatePDF } from './services/pdfService';
+import { uploadEvidence } from './services/supabaseService';
 
-const INITIAL_SHEET_ID = (import.meta as any).env.VITE_GOOGLE_SHEETS_ID || '';
-const INITIAL_API_KEY = (import.meta as any).env.VITE_GOOGLE_API_KEY || '';
+const SHEET_ID = (import.meta as any).env.VITE_GOOGLE_SHEETS_ID;
+const API_KEY = (import.meta as any).env.VITE_GOOGLE_API_KEY;
+const CSV_URL = (import.meta as any).env.VITE_GOOGLE_SHEET_CSV_URL;
 
 export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedClass, setSelectedClass] = useState(CLASSES[0].id);
-  const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Settings State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [config, setConfig] = useState({
-    sheetId: INITIAL_SHEET_ID,
-    apiKey: INITIAL_API_KEY,
-    gasUrl: '',
-    sheetName: 'Sheet1'
-  });
+  // Modals state
+  const [isRecordsOpen, setIsRecordsOpen] = useState(false);
 
-  const syncData = useCallback(async () => {
-    if (!config.sheetId || !config.apiKey) {
-      setError("Sila sediakan Google Sheets ID dan API Key di dalam Tetapan");
-      return;
-    }
+  // Auto-fetch on mount
+  useEffect(() => {
+    const initData = async () => {
+      if (!CSV_URL && (!SHEET_ID || !API_KEY)) {
+        setError("Sila masukkan VITE_GOOGLE_SHEET_CSV_URL atau API Key dalam menu Settings.");
+        return;
+      }
 
-    setIsSyncing(true);
-    setError(null);
-    try {
-      const data = await fetchStudentsFromSheet(config.sheetId, config.apiKey, config.sheetName);
-      setStudents(data);
-    } catch (err) {
-      setError("Gagal memuat turun data. Sila pastikan Sheet ID, API Key, dan Nama Sheet betul.");
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [config]);
+      setIsSyncing(true);
+      try {
+        const data = await fetchStudentsFromSheet(SHEET_ID, API_KEY, CSV_URL);
+        setStudents(data);
+        
+        // Extract unique classes
+        const uniqueClasses = Array.from(new Set(data.map(s => s.classId))).filter(Boolean).sort();
+        const classObjects = uniqueClasses.map(c => ({ id: c!, name: c! }));
+        setClasses(classObjects);
+        
+        if (classObjects.length > 0) {
+          setSelectedClass(classObjects[0].id);
+        }
+      } catch (err: any) {
+        setError(err.message || "Gagal memuat turun data.");
+      } finally {
+        setIsSyncing(false);
+      }
+    };
 
-  // Filter students based on search AND selected class (if classId exists)
+    initData();
+  }, []);
+
+  // Filter students based on search AND selected class
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = s.classId ? s.classId === selectedClass : true; // If no classId, show all in that class
+    const matchesClass = s.classId === selectedClass;
     return matchesSearch && matchesClass;
   });
 
-  const handleStatusChange = (id: string, status: SubmissionStatus, reason?: string) => {
+  const handleStatusChange = (id: string, status: SubmissionStatus, reason?: string, evidenceUrl?: string) => {
     setStudents(prev => prev.map(s => 
-      s.id === id ? { ...s, status, reason: status === 'not_submitted' ? reason : undefined } : s
+      s.id === id ? { ...s, status, reason: status === 'not_submitted' ? reason : undefined, evidenceUrl: evidenceUrl || s.evidenceUrl } : s
     ));
   };
 
   const handleReset = () => {
-    if (confirm('Padam semua data semakan untuk hari ini?')) {
-      setStudents(prev => prev.map(s => ({ ...s, status: 'pending', reason: undefined })));
-    }
+    console.log('Resetting all student statuses to pending...');
+    setStudents(prev => prev.map(s => ({ 
+      ...s, 
+      status: 'pending' as const, 
+      reason: undefined, 
+      evidenceUrl: undefined 
+    })));
+  };
+
+  const handleMarkAllSubmitted = () => {
+    // Determine which class name for logging/debugging
+    const currentClassName = classes.find(c => c.id === selectedClass)?.name || selectedClass;
+    console.log(`Marking all as submitted for class: ${currentClassName}`);
+
+    setStudents(prev => {
+      const newState = prev.map(s => {
+        // If student belongs to currently selected class, mark as submitted
+        if (s.classId === selectedClass) {
+          return { ...s, status: 'submitted' as const };
+        }
+        return s;
+      });
+      return newState;
+    });
   };
 
   return (
-    <div className="w-full min-h-screen font-sans flex flex-col overflow-x-hidden text-slate-800 pb-20 sm:pb-0">
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)}
-        config={config}
-        onSaveConfig={(id, key, gas, name) => {
-          setConfig({ sheetId: id, apiKey: key, gasUrl: gas, sheetName: name });
-          alert("Konfigurasi disimpan!");
-        }}
-        onImportStudents={(imported) => {
-          setStudents(imported);
-        }}
+    <div className="w-full min-h-screen font-sans flex flex-col overflow-x-hidden text-slate-800 pb-32 sm:pb-0">
+      {/* Records Modal */}
+      <RecordsModal 
+        isOpen={isRecordsOpen}
+        onClose={() => setIsRecordsOpen(false)}
+        students={students.filter(s => s.classId === selectedClass)}
+        date={selectedDate}
+        className={classes.find(c => c.id === selectedClass)?.name || selectedClass}
       />
 
       {/* Header Section */}
@@ -103,17 +131,11 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tighter text-slate-900 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">SSB MURID</h1>
-              <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] hidden sm:block">High Performance Dashboard</p>
+              <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] hidden sm:block">{SHEET_ID ? 'AUTOMATIC GOOGLE SHEETS SYNC' : 'AWAITING GOOGLE SHEETS ID'}</p>
             </div>
           </div>
           
           <div className="flex sm:hidden items-center space-x-2">
-            <button 
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 text-indigo-600 hover:bg-indigo-50 bg-white rounded-lg transition-all border-2 border-indigo-100 shadow-sm"
-            >
-              <Settings size={18} />
-            </button>
             <button 
               onClick={handleReset}
               className="p-2 text-rose-500 hover:bg-rose-50 bg-white border-2 border-rose-100 rounded-lg transition-all shadow-sm"
@@ -148,11 +170,15 @@ export default function App() {
               <select 
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full text-xs bg-white border-2 border-indigo-100 rounded-lg px-2 py-2 outline-none font-black text-indigo-600 cursor-pointer shadow-sm appearance-none"
+                className="w-full text-xs bg-white border-2 border-indigo-100 rounded-lg px-2 py-2 outline-none font-black text-indigo-600 cursor-pointer shadow-sm appearance-none min-w-[100px]"
               >
-                {CLASSES.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {classes.length > 0 ? (
+                  classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))
+                ) : (
+                  <option value="">Tiada Kelas</option>
+                )}
               </select>
             </div>
           </div>
@@ -163,114 +189,114 @@ export default function App() {
       <main className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 border-2 ${config.sheetId ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-              <div className={`w-2 h-2 rounded-full ${config.sheetId ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            <div className="px-4 py-1.5 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-700 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] font-black uppercase tracking-widest">
-                {config.sheetId ? 'Cloud Active' : 'Local Mode'}
+                Data Murid: {students.length}
               </span>
             </div>
             {error && (
-              <div className="px-4 py-1.5 bg-rose-50 border-2 border-rose-200 rounded-full text-rose-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 animate-bounce">
+              <div className="px-4 py-1.5 bg-rose-50 border-2 border-rose-200 rounded-full text-rose-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                 <AlertTriangle size={12} />
                 {error}
               </div>
+            )}
+            {isSyncing && (
+               <div className="flex items-center gap-2 text-blue-600 animate-pulse">
+                <RefreshCw size={14} className="animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Memuat Turun...</span>
+               </div>
             )}
           </div>
           
           <div className="hidden sm:flex gap-2">
             <button 
-              onClick={syncData}
-              disabled={isSyncing}
+              onClick={handleMarkAllSubmitted}
               className="text-[10px] bg-white border-2 border-blue-200 text-blue-600 px-4 py-2 rounded-xl font-black hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
             >
-              <Download size={12} className={isSyncing ? 'animate-bounce' : ''} />
-              SYNC DATA
+              <Users size={12} />
+              SEMUA DISEMAK
             </button>
             <button 
-              onClick={() => setIsSettingsOpen(true)}
-              className="text-[10px] bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-black hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+              onClick={() => setIsRecordsOpen(true)}
+              className="text-[10px] bg-white border-2 border-indigo-200 text-indigo-600 px-4 py-2 rounded-xl font-black hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
             >
-              <Settings size={12} />
-              SETTINGS
+              <FileText size={12} />
+              PAPAR REKOD
+            </button>
+            <button 
+              onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass)}
+              className="text-[10px] bg-white border-2 border-emerald-200 text-emerald-600 px-4 py-2 rounded-xl font-black hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+            >
+              <Download size={12} />
+              PDF REPORT
+            </button>
+            <button 
+              onClick={handleReset}
+              className="text-[10px] bg-white border-2 border-rose-200 text-rose-600 px-4 py-2 rounded-xl font-black hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+            >
+              <RefreshCw size={12} />
+              RESET STATUS
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mb-20 md:mb-10">
           <AnimatePresence mode="popLayout">
-            {filteredStudents.map((student) => (
+            {filteredStudents.map((student: Student) => (
               <StudentCard 
                 key={student.id} 
                 student={student} 
-                onStatusChange={handleStatusChange} 
+                onStatusChange={handleStatusChange}
+                onUploadEvidence={uploadEvidence}
               />
             ))}
           </AnimatePresence>
         </div>
 
-        {filteredStudents.length === 0 && (
-          <div className="py-20 text-center flex flex-col items-center gap-2">
-            <Search size={40} className="text-slate-200" />
-            <p className="text-slate-400 font-bold text-sm">Tiada murid...</p>
-          </div>
-        )}
-        
-        {/* Summary Footer */}
-        <div className="mt-8">
-           <Summary students={students} />
-        </div>
+        {filteredStudents.length > 0 && <Summary students={filteredStudents} />}
       </main>
 
       {/* Bottom Action Bar for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 sm:hidden flex items-center justify-between gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t-2 border-slate-100 p-4 sm:hidden flex items-center justify-around gap-4 z-50">
         <button 
-          onClick={syncData}
-          disabled={isSyncing}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-1 text-slate-600 active:scale-95 transition-all"
+          onClick={handleMarkAllSubmitted}
+          className="flex-1 flex flex-col items-center justify-center gap-1.5 text-blue-600 active:scale-90 transition-all"
         >
-          <div className="bg-slate-100 p-2 rounded-lg">
-            <Download size={20} className={isSyncing ? 'animate-bounce' : ''} />
+          <div className="bg-blue-100 p-2.5 rounded-2xl shadow-sm">
+            <Users size={24} />
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-tight">Sync</span>
-        </button>
-        
-        <button 
-          onClick={async () => {
-            if (!config.gasUrl) {
-              alert("Sila sediakan GAS Web App URL di dalam Tetapan");
-              setIsSettingsOpen(true);
-              return;
-            }
-            setIsSyncing(true);
-            try {
-              await fetch(config.gasUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(students)
-              });
-              alert("Data berjaya dihantar!");
-            } catch (err) {
-              alert("Gagal menghantar.");
-            } finally {
-              setIsSyncing(false);
-            }
-          }}
-          disabled={isSyncing}
-          className="flex-[2] bg-blue-600 text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
-        >
-          <Save size={18} className={isSyncing ? 'animate-spin' : ''} />
-          <span className="text-xs font-black uppercase tracking-widest">SAVE CLOUD</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-center">Tanda Semua</span>
         </button>
 
         <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-1 text-slate-600 active:scale-95 transition-all"
+          onClick={() => setIsRecordsOpen(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-1.5 text-indigo-600 active:scale-90 transition-all"
         >
-          <div className="bg-slate-100 p-2 rounded-lg">
-            <Settings size={20} />
+          <div className="bg-indigo-100 p-2.5 rounded-2xl shadow-sm">
+            <FileText size={24} />
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-tight">Setup</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">Rekod</span>
+        </button>
+
+        <button 
+          onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass)}
+          className="flex-1 flex flex-col items-center justify-center gap-1.5 text-emerald-600 active:scale-90 transition-all"
+        >
+          <div className="bg-emerald-100 p-2.5 rounded-2xl shadow-sm">
+            <Download size={24} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest">PDF</span>
+        </button>
+
+        <button 
+          onClick={handleReset}
+          className="flex-1 flex flex-col items-center justify-center gap-1.5 text-rose-600 active:scale-90 transition-all"
+        >
+          <div className="bg-rose-100 p-2.5 rounded-2xl shadow-sm">
+            <RefreshCw size={24} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest">Reset</span>
         </button>
       </div>
     </div>
