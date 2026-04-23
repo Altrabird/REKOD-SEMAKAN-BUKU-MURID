@@ -321,6 +321,26 @@ export default function App() {
           </div>
         </div>
 
+        {/* Mobile-only view toggle */}
+        <div className="sm:hidden mb-4 flex justify-end">
+          <div className="flex bg-white border-2 border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+              onClick={() => setViewMode('card')}
+              title="Paparan Kad"
+              className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${viewMode === 'card' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+            >
+              <LayoutGrid size={12} /> KAD
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              title="Paparan Senarai"
+              className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+            >
+              <List size={12} /> SENARAI
+            </button>
+          </div>
+        </div>
+
         {viewMode === 'card' ? (
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mb-20 md:mb-10">
             <AnimatePresence mode="popLayout">
