@@ -84,7 +84,7 @@ export default function StudentCard({ student, onStatusChange, onUploadEvidence 
         </div>
 
         {/* Name */}
-        <h3 className="text-[10px] sm:text-[11px] font-black text-slate-900 leading-tight h-10 flex items-center justify-center uppercase tracking-tight overflow-hidden px-1">
+        <h3 className="text-[10px] sm:text-[11px] font-black text-slate-900 leading-tight min-h-[40px] flex items-center justify-center uppercase tracking-tight px-1 py-1">
           {student.name}
         </h3>
 

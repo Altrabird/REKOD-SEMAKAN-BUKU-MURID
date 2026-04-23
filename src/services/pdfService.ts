@@ -2,26 +2,29 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Student } from '../types';
 
-export function generatePDF(students: Student[], date: string, className: string) {
+export function generatePDF(students: Student[], date: string, className: string, teacherName: string, subjectName: string, notes: string) {
   const doc = new jsPDF();
   const themeColor = [37, 99, 235]; // blue-600
 
   // Header Title
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
-  doc.text('LAPORAN SEMAKAN BUKU KERJA', 14, 22);
+  doc.text('LAPORAN SEMAKAN BUKU KERJA', 14, 20);
 
-  // Subheader
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Tarikh: ${date}  |  Kelas: ${className}`, 14, 30);
-  doc.text(`Dihasilkan pada: ${new Date().toLocaleString()}`, 14, 35);
+  // Subheader Info
+  doc.setFontSize(9);
+  doc.setTextColor(80);
+  doc.text(`Tarikh: ${date}`, 14, 28);
+  doc.text(`Kelas: ${className}`, 60, 28);
+  doc.text(`Guru: ${teacherName || '-'}`, 14, 33);
+  doc.text(`Subjek: ${subjectName || '-'}`, 60, 33);
+  doc.text(`Catatan: ${notes || '-'}`, 14, 38);
+  doc.text(`Dihasilkan pada: ${new Date().toLocaleString()}`, 110, 38);
 
   // Table Data
   const tableData = students.map((s, index) => [
     index + 1,
     s.name,
-    s.gender || '-',
     s.status === 'submitted' ? 'Hantar' : (s.status === 'not_submitted' ? 'Tidak Hantar' : 'Belum Semak'),
     s.reason || '-',
     s.evidenceUrl ? 'ADA' : '-'
@@ -29,7 +32,7 @@ export function generatePDF(students: Student[], date: string, className: string
 
   autoTable(doc, {
     startY: 45,
-    head: [['No', 'Nama Murid', 'Jantina', 'Status', 'Alasan (Jika Tiada)', 'Evidens']],
+    head: [['No', 'Nama Murid', 'Status', 'Alasan (Jika Tiada)', 'Evidens']],
     body: tableData as any,
     headStyles: { 
       fillColor: themeColor as any, 

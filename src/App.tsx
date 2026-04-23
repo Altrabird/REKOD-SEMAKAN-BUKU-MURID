@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar, 
   Users, 
+  User,
   Settings, 
   ChevronRight, 
   Search, 
@@ -34,41 +35,46 @@ export default function App() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [subjectName, setSubjectName] = useState('');
+  const [notes, setNotes] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Modals state
   const [isRecordsOpen, setIsRecordsOpen] = useState(false);
 
+  // Reusable fetch function
+  const refreshData = async () => {
+    if (!CSV_URL && (!SHEET_ID || !API_KEY)) {
+      setError("Sila masukkan VITE_GOOGLE_SHEET_CSV_URL atau API Key dalam menu Settings.");
+      return;
+    }
+
+    setIsSyncing(true);
+    setError(null);
+    try {
+      const data = await fetchStudentsFromSheet(SHEET_ID, API_KEY, CSV_URL);
+      setStudents(data);
+      
+      // Extract unique classes
+      const uniqueClasses = Array.from(new Set(data.map(s => s.classId))).filter(Boolean).sort();
+      const classObjects = uniqueClasses.map(c => ({ id: c!, name: c! }));
+      setClasses(classObjects);
+      
+      if (classObjects.length > 0 && !selectedClass) {
+        setSelectedClass(classObjects[0].id);
+      }
+    } catch (err: any) {
+      setError(err.message || "Gagal memuat turun data.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Auto-fetch on mount
   useEffect(() => {
-    const initData = async () => {
-      if (!CSV_URL && (!SHEET_ID || !API_KEY)) {
-        setError("Sila masukkan VITE_GOOGLE_SHEET_CSV_URL atau API Key dalam menu Settings.");
-        return;
-      }
-
-      setIsSyncing(true);
-      try {
-        const data = await fetchStudentsFromSheet(SHEET_ID, API_KEY, CSV_URL);
-        setStudents(data);
-        
-        // Extract unique classes
-        const uniqueClasses = Array.from(new Set(data.map(s => s.classId))).filter(Boolean).sort();
-        const classObjects = uniqueClasses.map(c => ({ id: c!, name: c! }));
-        setClasses(classObjects);
-        
-        if (classObjects.length > 0) {
-          setSelectedClass(classObjects[0].id);
-        }
-      } catch (err: any) {
-        setError(err.message || "Gagal memuat turun data.");
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-
-    initData();
+    refreshData();
   }, []);
 
   // Filter students based on search AND selected class
@@ -120,6 +126,9 @@ export default function App() {
         students={students.filter(s => s.classId === selectedClass)}
         date={selectedDate}
         className={classes.find(c => c.id === selectedClass)?.name || selectedClass}
+        teacherName={teacherName}
+        subjectName={subjectName}
+        notes={notes}
       />
 
       {/* Header Section */}
@@ -170,7 +179,7 @@ export default function App() {
               <select 
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full text-xs bg-white border-2 border-indigo-100 rounded-lg px-2 py-2 outline-none font-black text-indigo-600 cursor-pointer shadow-sm appearance-none min-w-[100px]"
+                className="w-full text-xs bg-white border-2 border-indigo-100 rounded-lg px-2 py-2 outline-none font-black text-indigo-600 cursor-pointer shadow-sm appearance-none min-w-[120px]"
               >
                 {classes.length > 0 ? (
                   classes.map(c => (
@@ -184,6 +193,49 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Info Section */}
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row gap-4 items-center">
+        <div className="w-full sm:w-1/3 flex flex-col gap-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Guru</label>
+          <div className="relative group">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" size={14} />
+            <input 
+              type="text" 
+              placeholder="NAMA GURU..."
+              value={teacherName}
+              onChange={(e) => setTeacherName(e.target.value.toUpperCase())}
+              className="w-full pl-9 pr-4 py-2 bg-blue-50/50 border-2 border-blue-100 rounded-xl text-xs font-black outline-none focus:border-blue-400 focus:bg-white transition-all shadow-sm uppercase"
+            />
+          </div>
+        </div>
+        <div className="w-full sm:w-1/3 flex flex-col gap-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Subjek</label>
+          <div className="relative group">
+            <BookMarked className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500" size={14} />
+            <input 
+              type="text" 
+              placeholder="CONTOH: MATEMATIK..."
+              value={subjectName}
+              onChange={(e) => setSubjectName(e.target.value.toUpperCase())}
+              className="w-full pl-9 pr-4 py-2 bg-indigo-50/50 border-2 border-indigo-100 rounded-xl text-xs font-black outline-none focus:border-indigo-400 focus:bg-white transition-all shadow-sm uppercase"
+            />
+          </div>
+        </div>
+        <div className="w-full sm:w-1/3 flex flex-col gap-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Catatan</label>
+          <div className="relative group">
+            <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+            <input 
+              type="text" 
+              placeholder="CATATAN TAMBAHAN..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value.toUpperCase())}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50/50 border-2 border-slate-100 rounded-xl text-xs font-black outline-none focus:border-slate-400 focus:bg-white transition-all shadow-sm uppercase"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Main Student Grid */}
       <main className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
@@ -211,6 +263,14 @@ export default function App() {
           
           <div className="hidden sm:flex gap-2">
             <button 
+              onClick={refreshData}
+              className={`text-[10px] bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 shadow-sm active:scale-95 ${isSyncing ? 'animate-pulse opacity-70' : 'hover:bg-slate-600 hover:text-white hover:border-slate-600'}`}
+              disabled={isSyncing}
+            >
+              <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+              SYNC DATA
+            </button>
+            <button 
               onClick={handleMarkAllSubmitted}
               className="text-[10px] bg-white border-2 border-blue-200 text-blue-600 px-4 py-2 rounded-xl font-black hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
             >
@@ -225,7 +285,7 @@ export default function App() {
               PAPAR REKOD
             </button>
             <button 
-              onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass)}
+              onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass, teacherName, subjectName, notes)}
               className="text-[10px] bg-white border-2 border-emerald-200 text-emerald-600 px-4 py-2 rounded-xl font-black hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all flex items-center gap-2 shadow-sm active:scale-95"
             >
               <Download size={12} />
@@ -280,7 +340,7 @@ export default function App() {
         </button>
 
         <button 
-          onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass)}
+          onClick={() => generatePDF(filteredStudents, selectedDate, classes.find(c => c.id === selectedClass)?.name || selectedClass, teacherName, subjectName, notes)}
           className="flex-1 flex flex-col items-center justify-center gap-1.5 text-emerald-600 active:scale-90 transition-all"
         >
           <div className="bg-emerald-100 p-2.5 rounded-2xl shadow-sm">

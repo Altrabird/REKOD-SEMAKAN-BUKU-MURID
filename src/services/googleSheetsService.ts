@@ -10,17 +10,22 @@ export async function fetchStudentsFromSheet(sheetId?: string, apiKey?: string, 
 
     if (csvUrl) {
       // Fetch from Public CSV (No API Key needed)
-      const response = await fetch(csvUrl);
+      // Added timestamp to bypass browser cache for real-time updates
+      const cacheBuster = `?t=${Date.now()}`;
+      const response = await fetch(csvUrl + (csvUrl.includes('?') ? '&' : '') + cacheBuster);
       if (!response.ok) throw new Error('Gagal memuat turun data CSV. Sila pastikan link "Publish to Web" adalah betul.');
       
       const csvData = await response.text();
-      // Simple CSV parser for A,B,C columns (ignoring header)
-      const lines = csvData.split(/\r?\n/).slice(1); // Skip header row
+      // Improved CSV parser that handles quoted commas (header row skipped)
+      const lines = csvData.split(/\r?\n/).slice(1); 
       rows = lines
         .filter(line => line.trim())
         .map(line => {
-          // Handle quoted values simple way
-          return line.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim());
+          // Robust regex for CSV: splits by comma but ignores commas inside double quotes. 
+          // Removed \s from exclusion to allow spaces in names and class names.
+          const regex = /(".*?"|[^",]+)(?=\s*,|\s*$)/g;
+          const matches = line.match(regex);
+          return matches ? matches.map(cell => cell.replace(/^"(.*)"$/, '$1').trim()) : [];
         });
     } else if (sheetId && apiKey) {
       // Fetch from Google Sheets API
@@ -36,10 +41,12 @@ export async function fetchStudentsFromSheet(sheetId?: string, apiKey?: string, 
       throw new Error('Tiada konfigurasi Google Sheets ditemui (CSV URL atau API Key).');
     }
     
+    console.log('Sample Row 0:', rows[0]); // Debugging: verify what column A and B contain
+
     return rows.map((row: any[], index: number) => ({
       id: `s-${index + 2}`,
-      name: row[0] || 'Unknown',
-      classId: row[1] || 'UMUM',
+      name: row[0] || 'Unknown',      // Column A: Full Name
+      classId: row[1] || 'UMUM',     // Column B: Class (e.g. 1 INOVATIF)
       sesi: row[2] || '',
       status: 'pending' as const
     }));

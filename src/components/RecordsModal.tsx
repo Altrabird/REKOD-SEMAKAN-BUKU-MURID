@@ -10,13 +10,16 @@ interface RecordsModalProps {
   students: Student[];
   date: string;
   className: string;
+  teacherName: string;
+  subjectName: string;
+  notes: string;
 }
 
-export default function RecordsModal({ isOpen, onClose, students, date, className }: RecordsModalProps) {
+export default function RecordsModal({ isOpen, onClose, students, date, className, teacherName, subjectName, notes }: RecordsModalProps) {
   if (!isOpen) return null;
 
   const handleDownload = () => {
-    generatePDF(students, date, className);
+    generatePDF(students, date, className, teacherName, subjectName, notes);
   };
 
   return (
