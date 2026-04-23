@@ -2,16 +2,29 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Student } from '../types';
 
-export function generatePDF(students: Student[], date: string, className: string, teacherName: string, subjectName: string, notes: string) {
-  const doc = new jsPDF();
-  const themeColor = [37, 99, 235]; // blue-600
+async function shortenUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch('/api/shorten', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) return url;
+    const data = await res.json();
+    return data.short || url;
+  } catch {
+    return url;
+  }
+}
 
-  // Header Title
+export async function generatePDF(students: Student[], date: string, className: string, teacherName: string, subjectName: string, notes: string) {
+  const doc = new jsPDF();
+  const themeColor = [37, 99, 235];
+
   doc.setFontSize(18);
   doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
   doc.text('LAPORAN SEMAKAN BUKU KERJA', 14, 20);
 
-  // Subheader Info
   doc.setFontSize(9);
   doc.setTextColor(80);
   doc.text(`Tarikh: ${date}`, 14, 28);
@@ -21,29 +34,47 @@ export function generatePDF(students: Student[], date: string, className: string
   doc.text(`Catatan: ${notes || '-'}`, 14, 38);
   doc.text(`Dihasilkan pada: ${new Date().toLocaleString()}`, 110, 38);
 
-  // Table Data
+  const shortUrls = await Promise.all(
+    students.map(s => s.evidenceUrl ? shortenUrl(s.evidenceUrl) : Promise.resolve(''))
+  );
+
   const tableData = students.map((s, index) => [
     index + 1,
     s.name,
     s.status === 'submitted' ? 'Hantar' : (s.status === 'not_submitted' ? 'Tidak Hantar' : 'Belum Semak'),
     s.reason || '-',
-    s.evidenceUrl ? 'ADA' : '-'
+    shortUrls[index] || '-'
   ]);
 
   autoTable(doc, {
     startY: 45,
     head: [['No', 'Nama Murid', 'Status', 'Alasan (Jika Tiada)', 'Evidens']],
     body: tableData as any,
-    headStyles: { 
-      fillColor: themeColor as any, 
+    headStyles: {
+      fillColor: themeColor as any,
       textColor: [255, 255, 255],
       fontStyle: 'bold'
     },
     styles: { fontSize: 9 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 4) {
+        const text = String(data.cell.raw ?? '');
+        if (text.startsWith('http')) {
+          data.cell.styles.textColor = themeColor as any;
+        }
+      }
+    },
+    didDrawCell: (data) => {
+      if (data.section === 'body' && data.column.index === 4) {
+        const text = String(data.cell.raw ?? '');
+        if (text.startsWith('http')) {
+          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: text });
+        }
+      }
+    },
   });
 
-  // Summary at the end
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   const submitted = students.filter(s => s.status === 'submitted').length;
   const total = students.length;

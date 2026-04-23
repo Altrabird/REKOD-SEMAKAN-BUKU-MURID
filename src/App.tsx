@@ -14,9 +14,12 @@ import {
   Download,
   AlertTriangle,
   Save,
-  FileText
+  FileText,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import StudentCard from './components/StudentCard';
+import StudentListRow from './components/StudentListRow';
 import Summary from './components/Summary';
 import { Student, SubmissionStatus, ClassData } from './types';
 import { REASONS } from './constants';
@@ -43,6 +46,7 @@ export default function App() {
   
   // Modals state
   const [isRecordsOpen, setIsRecordsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   // Reusable fetch function
   const refreshData = async () => {
@@ -262,7 +266,23 @@ export default function App() {
           </div>
           
           <div className="hidden sm:flex gap-2">
-            <button 
+            <div className="flex bg-white border-2 border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <button
+                onClick={() => setViewMode('card')}
+                title="Paparan Kad"
+                className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${viewMode === 'card' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                <LayoutGrid size={12} /> KAD
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                title="Paparan Senarai"
+                className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                <List size={12} /> SENARAI
+              </button>
+            </div>
+            <button
               onClick={refreshData}
               className={`text-[10px] bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 shadow-sm active:scale-95 ${isSyncing ? 'animate-pulse opacity-70' : 'hover:bg-slate-600 hover:text-white hover:border-slate-600'}`}
               disabled={isSyncing}
@@ -301,18 +321,33 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mb-20 md:mb-10">
-          <AnimatePresence mode="popLayout">
-            {filteredStudents.map((student: Student) => (
-              <StudentCard 
-                key={student.id} 
-                student={student} 
-                onStatusChange={handleStatusChange}
-                onUploadEvidence={uploadEvidence}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        {viewMode === 'card' ? (
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 mb-20 md:mb-10">
+            <AnimatePresence mode="popLayout">
+              {filteredStudents.map((student: Student) => (
+                <StudentCard
+                  key={student.id}
+                  student={student}
+                  onStatusChange={handleStatusChange}
+                  onUploadEvidence={uploadEvidence}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 mb-20 md:mb-10 max-w-4xl mx-auto">
+            <AnimatePresence mode="popLayout">
+              {filteredStudents.map((student: Student) => (
+                <StudentListRow
+                  key={student.id}
+                  student={student}
+                  onStatusChange={handleStatusChange}
+                  onUploadEvidence={uploadEvidence}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {filteredStudents.length > 0 && <Summary students={filteredStudents} />}
       </main>
