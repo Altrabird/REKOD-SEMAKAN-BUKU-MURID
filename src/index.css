@@ -22,7 +22,9 @@
 }
 
 body {
-  background-color: #f1f5f9; /* slate-100 */
+  background-color: #f1f5f9; /* fallback */
+  background: radial-gradient(circle at top left, #e0f2fe 0%, #f1f5f9 50%, #fae8ff 100%);
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -95,98 +95,104 @@ function doPost(e) {
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          className="relative bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col max-h-[90vh] border-4 border-white"
         >
           {/* Header */}
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
-                <Database size={20} />
+          <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl text-white shadow-xl shadow-black/10 ring-1 ring-white/50">
+                <Database size={24} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900 leading-none">Tetapan Konfigurasi</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Sistem & Pangkalan Data</p>
+                <h2 className="text-2xl font-black text-white leading-none uppercase tracking-tighter">Tetapan Sistem</h2>
+                <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5">Pangkalan Data Guru & Murid</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-900">
+            <button onClick={onClose} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white backdrop-blur-sm active:scale-90">
               <X size={24} />
             </button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
             
             {/* Cloud Setup */}
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
-                <ExternalLink size={14} />
-                Sambungan Google Sheets
-              </h3>
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Spreadsheet ID</label>
+            <section className="space-y-5">
+              <div className="flex items-center gap-3 px-3 border-l-4 border-blue-500">
+                <h3 className="text-xs font-black uppercase text-slate-800 tracking-[0.15em] flex items-center gap-2">
+                  <ExternalLink size={14} className="text-blue-500" />
+                  Konfigurasi Awan (Google)
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 gap-5 bg-slate-50/50 p-6 rounded-3xl border-2 border-slate-100">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Spreadsheet ID</label>
                   <input 
                     type="text" 
                     value={sheetId}
                     onChange={(e) => setSheetId(e.target.value)}
-                    placeholder="Contoh: 1ByC..._8oNf"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    placeholder="Masukkan ID Spreadsheet"
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all shadow-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Google API Key</label>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Google API Key</label>
                   <input 
                     type="password" 
                     value= {apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="AIza..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    placeholder="Contoh: AIza..."
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all shadow-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">GAS Web App URL (Bridge)</label>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">GAS Web App URL (Bridge)</label>
                   <input 
                     type="text" 
                     value={gasUrl}
                     onChange={(e) => setGasUrl(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    placeholder="URL Google Apps Script"
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all shadow-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Nama Sheet (Tab Name)</label>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Tab Sheet</label>
                   <input 
                     type="text" 
                     value={sheetName}
                     onChange={(e) => setSheetName(e.target.value)}
-                    placeholder="Sheet1"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                    placeholder="Contoh: Sheet1"
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all shadow-sm"
                   />
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider ml-1">Default: Sheet1</p>
                 </div>
               </div>
               <button 
                 onClick={() => onSaveConfig(sheetId, apiKey, gasUrl, sheetName)}
-                className="flex items-center justify-center gap-2 w-full bg-slate-900 text-white py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-all active:scale-[0.98]"
+                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:from-blue-700 hover:to-indigo-700 transition-all active:scale-95"
               >
                 <Save size={18} />
-                Simpan Konfigurasi Awan
+                SIMPAN & AKTIFKAN CLOUD
               </button>
             </section>
 
             {/* Excel Import */}
-            <section className="space-y-4 pt-4 border-t border-slate-100">
-              <h3 className="text-xs font-black uppercase text-green-600 tracking-widest flex items-center gap-2">
-                <FileSpreadsheet size={14} />
-                Import Murid Dari Excel
-              </h3>
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-6 flex flex-col items-center gap-4 border-dashed">
-                <div className="bg-white p-4 rounded-full text-green-500 shadow-sm">
-                  <Upload size={32} />
+            <section className="space-y-5 pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-3 px-3 border-l-4 border-emerald-500">
+                <h3 className="text-xs font-black uppercase text-slate-800 tracking-[0.15em] flex items-center gap-2">
+                  <FileSpreadsheet size={14} className="text-emerald-500" />
+                  Import Data (Excel)
+                </h3>
+              </div>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="group bg-gradient-to-br from-emerald-50 to-teal-50 border-4 border-dashed border-emerald-200 hover:border-emerald-500 p-10 rounded-[2.5rem] transition-all cursor-pointer flex flex-col items-center justify-center gap-4 active:scale-95"
+              >
+                <div className="bg-white p-5 rounded-3xl text-emerald-500 shadow-xl shadow-emerald-200/50 group-hover:scale-110 transition-transform">
+                  <Upload size={40} />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-bold text-slate-800">Muat Naik Fail Excel (.xlsx)</p>
-                  <p className="text-[11px] text-slate-500 mt-1 max-w-xs">Format Lajur: A(ID), B(Nama), C(Jantina: L/P), D(Kelas - Opsional)</p>
+                  <p className="text-base font-black text-slate-800 uppercase tracking-tighter">MUAT NAIK FAIL EXCEL</p>
+                  <p className="text-[10px] text-emerald-600 font-black mt-2 uppercase tracking-[0.2em] bg-emerald-100/50 px-3 py-1 rounded-full border border-emerald-200 inline-block">ID • NAMA • JANTINA • KELAS</p>
                 </div>
                 <input 
                   type="file" 
@@ -195,47 +201,37 @@ function doPost(e) {
                   accept=".xlsx, .xls"
                   className="hidden"
                 />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-6 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-green-700 transition-all"
-                >
-                  Pilih Fail
-                </button>
               </div>
             </section>
 
             {/* GAS Bridge Info */}
-            <section className="space-y-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2">
-                  <Info size={14} />
-                  Google Apps Script (GAS) Bridge
-                </h3>
+            <section className="space-y-5 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-3 px-3 border-l-4 border-purple-500">
+                  <h3 className="text-xs font-black uppercase text-slate-800 tracking-[0.15em] flex items-center gap-2">
+                    <Info size={14} className="text-purple-500" />
+                    GAS Bridge Code
+                  </h3>
+                </div>
                 <button 
                   onClick={handleCopyGAS}
-                  className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all"
+                  className="flex items-center gap-2 text-[10px] font-black uppercase bg-purple-50 text-purple-600 px-4 py-2 rounded-xl border-2 border-purple-100 hover:bg-purple-100 transition-all active:scale-90"
                 >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
-                  {copied ? 'Berjaya Salin!' : 'Salin Kod'}
+                  {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  {copied ? 'BERJAYA!' : 'SALIN KOD'}
                 </button>
               </div>
-              <div className="bg-slate-900 rounded-2xl p-4 overflow-hidden">
-                <pre className="text-[10px] text-slate-300 font-mono overflow-x-auto custom-scrollbar">
+              <div className="bg-slate-900 rounded-3xl p-6 overflow-hidden border-4 border-slate-800 shadow-2xl">
+                <pre className="text-[11px] text-slate-400 font-mono overflow-x-auto custom-scrollbar-dark leading-relaxed">
                   {gasCode}
                 </pre>
-              </div>
-              <div className="bg-indigo-50 p-4 rounded-xl flex items-start gap-3">
-                <Info size={18} className="text-indigo-500 mt-0.5 shrink-0" />
-                <div className="text-[11px] text-indigo-800 leading-relaxed font-medium">
-                  <strong>Cara Guna:</strong> Buka Google Sheets &gt; Extensions &gt; Apps Script. Tampal kod di atas, simpan, dan <strong>Deploy as Web App</strong>. Berikan akses "Anyone". URL web app ini boleh digunakan untuk sambungan POST data.
-                </div>
               </div>
             </section>
           </div>
           
           {/* Footer */}
-          <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Sistem Semakan Buku v2.0 • Diperkasakan oleh Cloud Tech</p>
+          <div className="p-5 bg-slate-50 border-t border-slate-100 text-center">
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Sistem Semakan v2.0 • Colorful Edition</p>
           </div>
         </motion.div>
       </div>
