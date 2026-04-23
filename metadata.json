@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Semakan Buku Murid",
+  "description": "Sistem digital untuk guru menyemak penghantaran buku kerja murid dengan integrasi Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
