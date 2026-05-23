@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'icon.svg'],
+        includeAssets: ['logo.png', 'logo-square.png'],
         manifest: {
           name: 'Sistem Semakan Buku Murid',
           short_name: 'SSB Murid',
@@ -26,15 +26,15 @@ export default defineConfig(({mode}) => {
           lang: 'ms',
           icons: [
             {
-              src: '/icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
+              src: '/logo-square.png',
+              sizes: '512x512',
+              type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
+              src: '/logo-square.png',
+              sizes: '512x512',
+              type: 'image/png',
               purpose: 'maskable',
             },
           ],

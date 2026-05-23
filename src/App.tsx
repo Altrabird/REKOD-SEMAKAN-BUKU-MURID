@@ -139,12 +139,9 @@ export default function App() {
       <header className="bg-white/70 backdrop-blur-md border-b-4 border-blue-500 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-[0_10px_30px_-15px_rgba(37,99,235,0.2)] sticky top-0 z-50 gap-3">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-2 rounded-xl shadow-lg shadow-blue-200">
-              <BookMarked size={20} />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-black tracking-tighter text-slate-900 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">SSB MURID</h1>
-              <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] hidden sm:block">{SHEET_ID ? 'AUTOMATIC GOOGLE SHEETS SYNC' : 'AWAITING GOOGLE SHEETS ID'}</p>
+            <img src="/logo.png" alt="SSB Murid" className="h-12 w-auto rounded-lg shadow-md" />
+            <div className="hidden sm:block">
+              <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em]">{SHEET_ID ? 'AUTOMATIC GOOGLE SHEETS SYNC' : 'AWAITING GOOGLE SHEETS ID'}</p>
             </div>
           </div>
           
